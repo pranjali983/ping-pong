@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ping Pong</title>
+<style>
+  body {
+    margin: 0;
+    background: #0f172a;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+  canvas {
+    background: #1e293b;
+    border: 3px solid #334155;
+    border-radius: 8px;
+  }
+  #score {
+    margin-top: 12px;
+    font-size: 22px;
+    font-weight: bold;
+  }
+  #restart {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: #38bdf8;
+    border: none;
+    color: #0f172a;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<canvas id="game" width="600" height="400"></canvas>
+<div id="score">You: 0 | AI: 0</div>
+<button id="restart">Restart</button>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const restartBtn = document.getElementById('restart');
+
+let player, ai, ball, playerScore, aiScore, gameLoop;
+
+function init() {
+  player = {x: 20, y: 170, w: 10, h: 60, dy: 0};
+  ai = {x: 570, y: 170, w: 10, h: 60};
+  ball = {x: 300, y: 200, r: 10, dx: 4, dy: 4};
+  playerScore = 0;
+  aiScore = 0;
+  updateScore();
+  clearInterval(gameLoop);
+  gameLoop = setInterval(update, 1000/60);
+}
+
+function updateScore() {
+  scoreEl.textContent = `You: ${playerScore} | AI: ${aiScore}`;
+}
+
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw center line
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = '#475569';
+  ctx.beginPath();
+  ctx.moveTo(300, 0);
+  ctx.lineTo(300, 400);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Move player
+  player.y += player.dy;
+  player.y = Math.max(0, Math.min(canvas.height - player.h, player.y));
+
+  // AI movement
+  if (ai.y + ai.h/2 < ball.y) ai.y += 3;
+  else ai.y -= 3;
+
+  // Move ball
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  // Ball collision with top/bottom
+  if (ball.y - ball.r < 0 || ball.y + ball.r > canvas.height) ball.dy *= -1;
+
+  // Ball collision with paddles
+  if (ball.x - ball.r < player.x + player.w &&
+      ball.y > player.y && ball.y < player.y + player.h) {
+    ball.dx *= -1;
+  }
+  if (ball.x + ball.r > ai.x &&
+      ball.y > ai.y && ball.y < ai.y + ai.h) {
+    ball.dx *= -1;
+  }
+
+  // Score
+  if (ball.x - ball.r < 0) {
+    aiScore++;
+    resetBall();
+  }
+  if (ball.x + ball.r > canvas.width) {
+    playerScore++;
+    resetBall();
+  }
+
+  updateScore();
+
+  // Draw paddles and ball
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.fillRect(ai.x, ai.y, ai.w, ai.h);
+
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function resetBall() {
+  ball.x = 300;
+  ball.y = 200;
+  ball.dx *= -1;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp') player.dy = -5;
+  if (e.key === 'ArrowDown') player.dy = 5;
+});
+document.addEventListener('keyup', () => player.dy = 0);
+
+// Touch for mobile
+canvas.addEventListener('touchmove', e => {
+  const touchY = e.touches[0].clientY - canvas.getBoundingClientRect().top;
+  player.y = touchY - player.h/2;
+});
+
+restartBtn.addEventListener('click', init);
+init();
+</script>
+</body>
+</html>
